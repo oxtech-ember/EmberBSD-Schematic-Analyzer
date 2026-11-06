@@ -57,5 +57,8 @@ def project(directory: Path):
           pinfunction="OUT" pintype="output+no_connect"/></net>
       </nets></export>''')
     erc = directory / 'erc.json'
-    erc.write_text(json.dumps({'source': str(root), 'sheets': [], 'kicad_version': '10.0.8'}))
+    erc.write_text(json.dumps({'source': root.name, 'kicad_version': '10.0.8', 'sheets': [
+        {'path': '/', 'uuid_path': f'/{ROOT}', 'violations': []},
+        {'path': '/Left/', 'uuid_path': f'/{ROOT}/{LEFT}', 'violations': []},
+        {'path': '/Right/', 'uuid_path': f'/{ROOT}/{RIGHT}', 'violations': []}]}))
     return root, netlist, erc

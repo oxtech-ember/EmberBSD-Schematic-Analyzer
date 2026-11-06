@@ -17,7 +17,24 @@ def read_model(root: Path, netlist: Path, erc: Path) -> dict:
     erc_data = json.loads(Path(erc).read_text(encoding='utf-8'))
     if not isinstance(erc_data, dict) or not isinstance(erc_data.get('sheets'), list):
         raise ValueError('expected KiCad ERC JSON with sheets')
+    erc_source = erc_data.get('source')
+    if not isinstance(erc_source, str) or Path(erc_source).name != root.name:
+        raise ValueError('ERC source identity does not match schematic')
     sheets, coverage = read_drawing(root)
+    root_uuid = sheets[0]['uuid']
+    erc_paths = {'/' + root_uuid + s['id'].rstrip('/'): s['id'] for s in sheets}
+    reported_paths = set()
+    for erc_sheet in erc_data['sheets']:
+        if not isinstance(erc_sheet, dict) or not isinstance(erc_sheet.get('uuid_path'), str):
+            raise ValueError('ERC sheet identity is missing')
+        path = erc_sheet['uuid_path'].rstrip('/')
+        if path not in erc_paths or path in reported_paths:
+            raise ValueError('ERC sheet identity does not match schematic')
+        if not isinstance(erc_sheet.get('violations'), list):
+            raise ValueError('ERC sheet violations must be a list')
+        reported_paths.add(path)
+    for path in erc_paths.keys() - reported_paths:
+        coverage.append(dict(sheet=erc_paths[path], object=None, reason='erc-sheet-not-reported'))
     components = {}
     for c in xml.findall('components/comp'):
         ref = c.get('ref')
@@ -50,7 +67,7 @@ def read_model(root: Path, netlist: Path, erc: Path) -> dict:
             nodes.append(dict(reference=ref, pin=pin, function=node.get('pinfunction'),
                               electrical_type=node.get('pintype')))
         nets.append(dict(id=code, name=n.get('name'), nodes=nodes))
-    seen = set()
+    seen, drawn_paths = set(), {}
     for sheet in sheets:
         for symbol in sheet['symbols']:
             ref = symbol['reference']
@@ -62,6 +79,7 @@ def read_model(root: Path, netlist: Path, erc: Path) -> dict:
             if symbol['uuid'] not in component['uuids']:
                 raise ValueError(f'symbol/netlist identity mismatch: {symbol["id"]} ({ref})')
             seen.add(ref)
+            drawn_paths.setdefault(ref, set()).add(sheet['id'])
             symbol['electrical'] = ref
             for pin in symbol['pins']:
                 pin['net'] = by_pin.get((ref, pin['number']))
@@ -71,6 +89,9 @@ def read_model(root: Path, netlist: Path, erc: Path) -> dict:
                 pin['function'] = metadata.get('pinfunction')
                 if pin['net'] is None:
                     coverage.append(dict(sheet=sheet['id'], object=pin['id'], reason='pin-not-exported'))
+    for ref, paths in drawn_paths.items():
+        if components[ref]['sheet'] not in paths:
+            raise ValueError(f'component sheet identity mismatch: {ref}')
     for ref in components.keys() - seen:
         coverage.append(dict(sheet=components[ref]['sheet'], object=ref, reason='component-not-drawn'))
     return dict(schema=1, source=str(root), electrical_authority='KiCad XML netlist',

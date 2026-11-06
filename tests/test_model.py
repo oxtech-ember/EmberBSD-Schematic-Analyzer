@@ -1,9 +1,10 @@
 import tempfile
 import unittest
+import json
 from pathlib import Path
 
 from ember_schematic.model import read_model
-from fixtures import project, LEFT, RIGHT, A, B
+from fixtures import project, ROOT, LEFT, RIGHT, A, B
 
 
 class ModelTests(unittest.TestCase):
@@ -47,6 +48,36 @@ class ModelTests(unittest.TestCase):
         self.inputs[1].write_text(self.inputs[1].read_text().replace(A, 'foreign-uuid'))
         with self.assertRaisesRegex(ValueError, 'identity'):
             read_model(*self.inputs)
+
+    def test_swapped_repeated_sheet_identities_are_rejected(self):
+        netlist = self.inputs[1]
+        text = netlist.read_text().replace(LEFT, 'SWAP').replace(RIGHT, LEFT).replace('SWAP', RIGHT)
+        netlist.write_text(text)
+        with self.assertRaisesRegex(ValueError, 'sheet.*identity'):
+            read_model(*self.inputs)
+
+    def test_units_of_one_component_may_span_sheets(self):
+        child = self.inputs[0].parent / 'child.kicad_sch'
+        data = child.read_text().replace(
+            f'(path "/{ROOT}/{LEFT}" (reference "U1") (unit 2))',
+            f'(path "/{ROOT}/{LEFT}" (reference "U2") (unit 2))').replace(
+            f'(path "/{ROOT}/{RIGHT}" (reference "U2") (unit 2))',
+            f'(path "/{ROOT}/{RIGHT}" (reference "U1") (unit 2))')
+        child.write_text(data)
+        model = read_model(*self.inputs)
+        pin = model['sheets'][2]['symbols'][1]['pins'][0]
+        self.assertEqual(pin['net'], '2')
+
+    def test_erc_source_and_sheet_identity_are_checked(self):
+        erc = self.inputs[2]
+        for data in [dict(source='other.kicad_sch', sheets=[]),
+                     dict(source='root.kicad_sch', sheets=[dict(uuid_path='/foreign/', violations=[])])]:
+            erc.write_text(json.dumps(data))
+            with self.subTest(data=data), self.assertRaisesRegex(ValueError, 'ERC.*identity'):
+                read_model(*self.inputs)
+        erc.write_text(json.dumps(dict(source='root.kicad_sch', sheets=[
+            dict(path='/Left/', uuid_path=f'/{ROOT}/{LEFT}/', violations=[])])))
+        self.assertEqual(read_model(*self.inputs)['erc']['source'], 'root.kicad_sch')
 
     def test_recursive_sheet_is_rejected(self):
         root = self.inputs[0]
