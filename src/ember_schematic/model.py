@@ -30,7 +30,7 @@ def read_model(root: Path, netlist: Path, erc: Path) -> dict:
                                fields={f.get('name'): f.text for f in c.findall('fields/field')},
                                units=[dict(name=u.get('name'), pins=[p.get('num') for p in u.findall('pins/pin')])
                                       for u in c.findall('units/unit')])
-    nets, by_pin = [], {}
+    nets, by_pin, pin_metadata = [], {}, {}
     codes = set()
     for n in xml.findall('nets/net'):
         code = n.get('code')
@@ -46,6 +46,7 @@ def read_model(root: Path, netlist: Path, erc: Path) -> dict:
             if key in by_pin and by_pin[key] != code:
                 raise ValueError('pin belongs to multiple exported nets')
             by_pin[key] = code
+            pin_metadata[key] = node.attrib
             nodes.append(dict(reference=ref, pin=pin, function=node.get('pinfunction'),
                               electrical_type=node.get('pintype')))
         nets.append(dict(id=code, name=n.get('name'), nodes=nodes))
@@ -64,6 +65,10 @@ def read_model(root: Path, netlist: Path, erc: Path) -> dict:
             symbol['electrical'] = ref
             for pin in symbol['pins']:
                 pin['net'] = by_pin.get((ref, pin['number']))
+                pin['library_electrical_type'] = pin['electrical_type']
+                metadata = pin_metadata.get((ref, pin['number']), {})
+                pin['electrical_type'] = metadata.get('pintype')
+                pin['function'] = metadata.get('pinfunction')
                 if pin['net'] is None:
                     coverage.append(dict(sheet=sheet['id'], object=pin['id'], reason='pin-not-exported'))
     for ref in components.keys() - seen:

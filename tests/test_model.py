@@ -59,3 +59,20 @@ class ModelTests(unittest.TestCase):
         before = {p.name: p.read_bytes() for p in directory.glob('*.kicad_sch')}
         read_model(*self.inputs)
         self.assertEqual(before, {p.name: p.read_bytes() for p in directory.glob('*.kicad_sch')})
+
+    def test_electrical_pin_type_comes_from_export(self):
+        netlist = self.inputs[1]
+        netlist.write_text(netlist.read_text().replace('pintype="input"', 'pintype="bidirectional"'))
+        model = read_model(*self.inputs)
+        pin = model['sheets'][1]['symbols'][0]['pins'][0]
+        self.assertEqual(pin['electrical_type'], 'bidirectional')
+
+    def test_power_symbol_remains_in_drawing_when_omitted_from_xml(self):
+        root = self.inputs[0]
+        data = root.read_text().rstrip()
+        root.write_text(data[:-1] + '''(symbol (lib_id "power:GND") (at 10 10 0)
+          (uuid "power") (property "Reference" "#PWR01")) )''')
+        model = read_model(*self.inputs)
+        self.assertEqual(model['sheets'][0]['symbols'][0]['reference'], '#PWR01')
+        self.assertIsNone(model['sheets'][0]['symbols'][0]['electrical'])
+        self.assertIn('symbol-not-exported', {c['reason'] for c in model['coverage']})

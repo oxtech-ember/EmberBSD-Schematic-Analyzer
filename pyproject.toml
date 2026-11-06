@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "emberbsd-schematic-analyzer"
+version = "0.1.0"
+description = "Read-only electrical and drawing analysis of KiCad schematics"
+requires-python = ">=3.11"
+dependencies = ["kiutils>=1.4.8"]
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+readme = "README.md"
+
+[project.scripts]
+schematic-analyzer = "ember_schematic.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
