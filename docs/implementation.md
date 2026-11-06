@@ -43,12 +43,12 @@ returns paths to fresh XML and ERC JSON; `read_model(root: Path, netlist: Path,
 erc: Path) -> dict` produces the JSON-compatible model. KiUtils remains the
 only schematic parser. Subprocess calls use argument lists and explicit outputs.
 
-- [ ] Add fixtures/assertions for repeated sheets, multi-unit pins, mirrored and
+- [x] Add fixtures/assertions for repeated sheets, multi-unit pins, mirrored and
   rotated anchors, power/virtual symbols, no-connect and unsupported tokens.
-- [ ] Implement the adapters and identity joins, retaining source geometry and
+- [x] Implement the adapters and identity joins, retaining source geometry and
   recording unresolved associations instead of fabricating nets.
-- [ ] Check export failures and inconsistent identities, then run the model tests.
-- [ ] Commit the model and its documented JSON fields together.
+- [x] Check export failures and inconsistent identities, then run the model tests.
+- [x] Commit the model and its documented JSON fields together.
 
 ## Task 2: Analyze the wire drawing
 
@@ -59,13 +59,13 @@ Interfaces: `analyze_wires(model: dict) -> list[dict]` and
 `suggest_orientations(model: dict) -> list[dict]`. Findings contain source IDs,
 sheet, geometry, measured values, conditions and severity/category.
 
-- [ ] Assert a T branch is not a cycle; crossing and junction fixtures differ;
+- [x] Assert a T branch is not a cycle; crossing and junction fixtures differ;
   virtual label joins add no geometric edges; duplicate wire and closed loop differ.
-- [ ] Build the contact/section graph and a deterministic cycle basis; retain
+- [x] Build the contact/section graph and a deterministic cycle basis; retain
   anchors when measuring chains, lengths and bend counts.
-- [ ] Compare candidate symbol rotations using actual pin transforms; return
+- [x] Measure candidate symbol rotations using actual pin transforms; return
   unknown/no recommendation when drawing context cannot support the comparison.
-- [ ] Run graph/orientation regressions and commit.
+- [x] Run graph/orientation regressions and commit.
 
 ## Task 3: Add explicit electrical rules
 
@@ -76,10 +76,10 @@ Interface: `check_electrical(model: dict, facts: dict) -> list[dict]`.
 Facts explicitly identify rail voltages, allowed pin ranges and required
 pull-up/decoupling connections. Findings cite the facts used.
 
-- [ ] Test a declared overvoltage, compatible input and missing rating.
-- [ ] Test a required resistor/capacitor connection, wrong/missing connection and
+- [x] Test a declared overvoltage, compatible input and missing rating.
+- [x] Test a required resistor/capacitor connection, wrong/missing connection and
   insufficient component identity; do not infer roles from reference prefixes.
-- [ ] Implement these bounded rules, retain ERC results separately and commit.
+- [x] Implement these bounded rules, retain ERC results separately and commit.
 
 ## Task 4: Deliver CLI, reports and integration
 
@@ -93,8 +93,10 @@ remain visible in the report rather than being reported as processing errors.
 
 - [ ] Exercise a real small KiCad design through export, analysis and report;
   verify source files are unchanged and highlighted objects match source IDs.
-- [ ] Document precise coverage and unsupported elements; distinguish actual
+- [x] Document precise coverage and unsupported elements; distinguish actual
   measurements from candidate layout improvements.
 - [ ] Package the application through Ports with the common KiUtils dependency.
 - [ ] Run the workflow on EmberBSD aarch64, then publish reviewed sources and
   dependency-closed packages through the explicit maintainer publisher.
+
+Current implementation: model, graph analysis, bounded rules, CLI and reports pass 29 host regressions. The complete KiCad export/runtime workflow and the Ports application package remain open in the project integration work; no target acceptance is implied.
