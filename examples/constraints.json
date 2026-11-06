@@ -1,0 +1,5 @@
+{
+  "rails": [{"net": "VCC", "voltage": 3.3}],
+  "pin_limits": [{"id": "u1-supply", "reference": "U1", "pin": "1", "min": 3.0, "max": 3.6}],
+  "connections": [{"id": "u1-bypass", "kind": "decoupling", "component": "C1", "pins": ["1", "2"], "between": ["VCC", "GND"]}]
+}
