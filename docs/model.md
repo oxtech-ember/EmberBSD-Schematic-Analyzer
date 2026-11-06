@@ -30,3 +30,23 @@ be absent from XML and remain present in the drawing.
 The source hashes identify files read for the drawing; they are not a proof that
 externally supplied XML is current. UUID mismatches are rejected. No original
 schematic, project or library is written by the application.
+
+`analyze_wires(model)` adds `wire_graph` to each sheet: numbered nodes with
+coordinates and anchor IDs, and edges with endpoints, length and original wire
+IDs. It reports a deterministic cycle basis, overlapping wire sections and
+chain detours. Labels add anchors but never edges between distant points; hidden
+pins do not create drawing contacts. Lower bounds ignore obstacles and are not
+proposed replacement routes.
+
+Orientation output compares quarter-turn pin-distance lower bounds only when
+each relevant pin has one traceable wire chain to a fixed anchor. It deliberately
+returns `unknown` for a rotation recommendation: checking symbol body and text
+clearance is not implemented. Measurements remain usable without claiming that
+the shorter orientation is safe or clearer. This limit is also in every result.
+
+Explicit constraints use the format in `examples/constraints.json`. Net names
+must identify one exported net. Pin ratings and rail voltages are supplied by the
+project; conflicting or absent facts produce `unknown`. Required pull-up and
+decoupling checks verify only the declared component's two-pin net connection,
+not its value, type, physical placement, population, frequency response or
+adequacy for an IC. A `pass` applies only to that narrow rule, not to the design.
